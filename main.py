@@ -15,27 +15,21 @@ def main() -> None:
     running = True
 
     engine = Engine(screen, *SCREEN_RES)
-
     engine.create_base_arrow()
 
-    cont = engine.choose_difficulty(clock)
-
-    if not cont:
-        return
-
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
         
-        screen.fill((0, 0, 0))
+        start = engine.main_menu(clock)
+        if not start:
+            return
 
-        engine.update()
-        engine.draw()
+        cont = engine.main_game(clock)
+        if not cont:
+            return
 
-        pygame.display.flip()
-
-        clock.tick(60)
+        restart = engine.end_game(clock)
+        if not restart:
+            return
 
 
 if __name__ == '__main__':

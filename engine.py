@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import random
 import pygame
-from entities import LeftArrow, RightArrow, UpArrow, DownArrow
+from typing import Optional
 
+from entities import LeftArrow, RightArrow, UpArrow, DownArrow
 from draw import Draw
+from score import Score
 
 # Class for controlling the game logic
 class Engine:
@@ -14,9 +16,8 @@ class Engine:
         self.base_arrows = pygame.sprite.Group()
         self.moving_arrows = pygame.sprite.Group()
         self.draw_screen = Draw(self.screen)
+        self.score = Score()
 
-        self.score = 0
-        self.streak = 0
         self.difficulty = 0
         self.falling_speed = 0
         self.last_spawn = 0
@@ -32,8 +33,20 @@ class Engine:
             800,
             600
         ]
+        self.arrow_per_level = [
+            10,
+            20,
+            10 # TEMP
+        ]
+        self.count_arrows = 0
+
         self.screen_width = screen_width
         self.screen_height = screen_height
+
+    def reset_game(self) -> None:
+        self.score.reset()
+        self.moving_arrows.empty()
+        self.count_arrows = 0
 
     def create_base_arrow(self) -> None:
         
@@ -68,20 +81,24 @@ class Engine:
                 
                 # If the arrow is within 10 pixels of the bottom arrows, give 100 points
                 if self.screen_height - 150 - 10 < y_pos < self.screen_height - 150 + 10:
-                    self.streak += 1
-                    self.score += 100
+                    self.score.update_score(100)
+                    self.score.update_streak(True)
 
                 # If the arrow is within 20 pixels of the bottom arrows, give 50 points
                 elif (self.screen_height - 150 - 20 <= y_pos <= self.screen_height - 150 - 10) or (self.screen_height - 150 + 10 <= y_pos <= self.screen_height - 150 + 20):
-                    self.score += 50
-                    self.streak += 1
+                    self.score.update_score(50)
+                    self.score.update_streak(True)
                 
                 # Reset the streak if the player pressed to late, early or didn't press at all
                 else:
-                    self.streak = 0
+                    self.score.update_streak(False)
+
+                self.count_arrows += 1
 
         # Update the score screen
-        self.draw_screen.draw_score(self.score, self.streak)
+        self.draw_screen.draw_score(self.score.score, self.score.streak)
+
+        return self.count_arrows >= self.arrow_per_level[self.difficulty]
 
     def draw(self) -> None:
         
@@ -115,11 +132,11 @@ class Engine:
 
         self.moving_arrows.add(arrow)
 
-    def choose_difficulty(self, clock: pygame.time.Clock) -> bool:
+    def main_menu(self, clock: pygame.time.Clock) -> bool:
 
-        # Function to the player choose the difficulty of the game
         diff = 0
 
+        # Function to the player choose to start the game
         while True:
             for event in pygame.event.get():
 
@@ -144,7 +161,87 @@ class Engine:
                     self.falling_speed = (diff + 1) * 2 + 1
                     return True
 
+            self.screen.fill((0, 0, 0))
             self.draw_screen.draw_choose_difficulty(self.screen_width, self.screen_height, diff)
+
+            pygame.display.flip()
+            clock.tick(60)
+
+    def main_game(self, clock: pygame.time.Clock) -> bool:
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+            
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_ESCAPE]:
+                    resume = self.pause_game(clock)
+
+                    if resume is not None:
+                        return resume
+            
+            self.screen.fill((0, 0, 0))
+
+            check_end = self.update()
+            if check_end:
+                return True
+
+            self.draw()
+
+            pygame.display.flip()
+
+            clock.tick(60)
+
+    def pause_game(self, clock: pygame.time.Clock) -> Optional[bool]:
+
+        option = 0
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_UP]:
+                    if option > 0:
+                        option -= 1
+                    else:
+                        option = 1
+
+                elif keys[pygame.K_DOWN]:
+                    if option < 1:
+                        option += 1
+                    else:
+                        option = 0
+
+                elif keys[pygame.K_RETURN]:
+                    if option == 0:
+                        return 
+
+                    elif option == 1:
+                        return True
+
+            self.screen.fill((0, 0, 0))
+            self.draw_screen.draw_pause_screen(self.screen_width, self.screen_height, option)
+
+            pygame.display.flip()
+            clock.tick(60)
+
+    def end_game(self, clock: pygame.time.Clock) -> bool:
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_RETURN]:
+                    self.reset_game()
+                    return True
+
+            self.screen.fill((0, 0, 0))
+            self.draw_screen.draw_end_screen(self.screen_width, self.screen_height, self.score.score, self.score.max_streak)
 
             pygame.display.flip()
             clock.tick(60)
