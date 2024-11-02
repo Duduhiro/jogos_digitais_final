@@ -19,14 +19,17 @@ def main() -> None:
 
     while running:
         
+        # Render the main menu
         start = engine.main_menu(clock)
         if not start:
             return
 
+        # Render the game
         cont = engine.main_game(clock)
         if not cont:
             return
 
+        # Render the end game
         restart = engine.end_game(clock)
         if not restart:
             return

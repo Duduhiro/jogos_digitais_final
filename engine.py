@@ -95,12 +95,17 @@ class Engine:
         return self.count_arrows >= self.arrow_per_level[self.difficulty]
 
     def calculate_score(self, y_pos: int) -> None:
+        # If the arrow is within 10 pixels of the bottom arrows, give 100 points
         if self.screen_height - 150 -10 < y_pos < self.screen_height - 150 + 10:
             self.score.update_score(100)
             self.score.update_streak(True)
+        
+        # If the arrow is within 20 pixels of the bottom arrows, give 50 points
         elif (self.screen_height - 150 - 20) <= y_pos < (self.screen_height - 150 - 10) or (self.screen_height - 150 + 10) < y_pos <= (self.screen_height - 150 + 20):
             self.score.update_score(50)
             self.score.update_streak(True)
+        
+        # If the arrow is out of the hit box, reset the streak
         else:
             self.score.update_streak(False)
 
@@ -146,7 +151,10 @@ class Engine:
                     return False
 
                 keys = pygame.key.get_pressed()
+                
+                # Check if the player pressed the UP or DOWN key to change the difficulty
                 if keys[pygame.K_UP]:
+                    # The difficulty is a number between 0 and 2
                     diff = (diff - 1) % 3
                 elif keys[pygame.K_DOWN]:
                     diff = (diff + 1) % 3
