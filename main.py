@@ -8,7 +8,7 @@ def main() -> None:
 
     SCREEN_RES = (800, 600)
 
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode(SCREEN_RES)
     pygame.display.set_caption('Dance it!')
     clock = pygame.time.Clock()
 

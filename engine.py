@@ -4,9 +4,16 @@ import random
 import pygame
 from typing import Optional
 
-from entities import LeftArrow, RightArrow, UpArrow, DownArrow
+from entities import Arrow
 from draw import Draw
 from score import Score
+
+ARROW_TYPES = {
+    'left':      {'rotation': 270, 'color': (255, 0, 0), 'key': pygame.K_LEFT},
+    'right':     {'rotation': 90, 'color': (64, 0, 128), 'key': pygame.K_RIGHT},
+    'up':        {'rotation': 180, 'color': (0, 0, 255), 'key': pygame.K_UP},
+    'down':      {'rotation': 0, 'color': (0, 0, 0), 'key': pygame.K_DOWN},
+}
 
 # Class for controlling the game logic
 class Engine:
@@ -35,8 +42,8 @@ class Engine:
         ]
         self.arrow_per_level = [
             10,
-            20,
-            10 # TEMP
+            15,
+            20
         ]
         self.count_arrows = 0
 
@@ -50,23 +57,22 @@ class Engine:
 
     def create_base_arrow(self) -> None:
         
-        # Create the arrows in the bottom of the screen
-        lArrow = LeftArrow(self.arrow_spawn_pos['left'], self.screen_height - 150)
-        self.base_arrows.add(lArrow)
+        spawn_height = self.screen_height - 150
         
-        uArrow = UpArrow(self.arrow_spawn_pos['up'], self.screen_height - 150)
-        self.base_arrows.add(uArrow)
+        for direction, props in ARROW_TYPES.items():
+            x_position = self.arrow_spawn_pos[direction]
+            arrow = Arrow(
+                x=x_position,
+                y=spawn_height,
+                rotation=props['rotation'],
+                color=props['color'],
+                key=props['key']
+            )
+            self.base_arrows.add(arrow)
 
-        dArrow = DownArrow(self.arrow_spawn_pos['down'], self.screen_height - 150)
-        self.base_arrows.add(dArrow)
-
-        rArrow = RightArrow(self.arrow_spawn_pos['right'], self.screen_height - 150)
-        self.base_arrows.add(rArrow)
-
-    def update(self) -> None:
+    def update(self) -> bool:
         
         # Update the entire game
-
         # Spawn the falling arrows
         self.spawn_arrows()
 
@@ -80,19 +86,7 @@ class Engine:
             if y_pos is not None:
                 
                 # If the arrow is within 10 pixels of the bottom arrows, give 100 points
-                if self.screen_height - 150 - 10 < y_pos < self.screen_height - 150 + 10:
-                    self.score.update_score(100)
-                    self.score.update_streak(True)
-
-                # If the arrow is within 20 pixels of the bottom arrows, give 50 points
-                elif (self.screen_height - 150 - 20 <= y_pos <= self.screen_height - 150 - 10) or (self.screen_height - 150 + 10 <= y_pos <= self.screen_height - 150 + 20):
-                    self.score.update_score(50)
-                    self.score.update_streak(True)
-                
-                # Reset the streak if the player pressed to late, early or didn't press at all
-                else:
-                    self.score.update_streak(False)
-
+                self.calculate_score(y_pos)
                 self.count_arrows += 1
 
         # Update the score screen
@@ -100,17 +94,26 @@ class Engine:
 
         return self.count_arrows >= self.arrow_per_level[self.difficulty]
 
+    def calculate_score(self, y_pos: int) -> None:
+        if self.screen_height - 150 -10 < y_pos < self.screen_height - 150 + 10:
+            self.score.update_score(100)
+            self.score.update_streak(True)
+        elif (self.screen_height - 150 - 20) <= y_pos < (self.screen_height - 150 - 10) or (self.screen_height - 150 + 10) < y_pos <= (self.screen_height - 150 + 20):
+            self.score.update_score(50)
+            self.score.update_streak(True)
+        else:
+            self.score.update_streak(False)
+
     def draw(self) -> None:
         
         # Draw the entire game
         self.base_arrows.draw(self.screen)
         self.moving_arrows.draw(self.screen)
-        self.draw_screen.draw_board(self.arrow_spawn_pos['left'], self.arrow_spawn_pos['right'], self.screen, self.screen_height)
+        self.draw_screen.draw_board(self.arrow_spawn_pos['left'], self.arrow_spawn_pos['right'], self.screen_height)
 
     def spawn_arrows(self) -> None:
         
         # Spawn the falling arrows
-        
         # This part check if the time since the last arrow spawned is greater than the delay for the current difficulty
         current_time = pygame.time.get_ticks()
 
@@ -119,24 +122,23 @@ class Engine:
         self.last_spawn = current_time
 
         # Choose a random position to spawn the arrow
-        chosen_arrow = random.choice(['left', 'up', 'down', 'right'])
+        chosen_arrow = random.choice(list(ARROW_TYPES.keys()))
+        arrow_props = ARROW_TYPES[chosen_arrow] 
+        x_position = self.arrow_spawn_pos[chosen_arrow]
         
-        if chosen_arrow == 'left':
-            arrow = LeftArrow(self.arrow_spawn_pos[chosen_arrow])
-        elif chosen_arrow == 'up':
-            arrow = UpArrow(self.arrow_spawn_pos[chosen_arrow])
-        elif chosen_arrow == 'down':
-            arrow = DownArrow(self.arrow_spawn_pos[chosen_arrow])
-        elif chosen_arrow == 'right':
-            arrow = RightArrow(self.arrow_spawn_pos[chosen_arrow])
+        arrow = Arrow(
+            x=x_position,
+            rotation=arrow_props['rotation'],
+            color=arrow_props['color'],
+            key=arrow_props['key']
+        )
 
         self.moving_arrows.add(arrow)
 
     def main_menu(self, clock: pygame.time.Clock) -> bool:
 
         diff = 0
-
-        # Function to the player choose to start the game
+        # Function to select the difficulty of the game
         while True:
             for event in pygame.event.get():
 
@@ -145,25 +147,16 @@ class Engine:
 
                 keys = pygame.key.get_pressed()
                 if keys[pygame.K_UP]:
-                    if diff > 0:
-                        diff -= 1
-                    else:
-                        diff = 2
-
+                    diff = (diff - 1) % 3
                 elif keys[pygame.K_DOWN]:
-                    if diff < 2:
-                        diff += 1
-                    else:
-                        diff = 0
-
+                    diff = (diff + 1) % 3
                 elif keys[pygame.K_RETURN]:
                     self.difficulty = diff
                     self.falling_speed = (diff + 1) * 2 + 1
                     return True
 
             self.screen.fill((0, 0, 0))
-            self.draw_screen.draw_choose_difficulty(self.screen_width, self.screen_height, diff)
-
+            self.draw_screen.draw_choose_difficulty(self.screen_height, diff)
             pygame.display.flip()
             clock.tick(60)
 
@@ -183,19 +176,17 @@ class Engine:
             
             self.screen.fill((0, 0, 0))
 
-            check_end = self.update()
-            if check_end:
+            if self.update():
                 return True
-
             self.draw()
 
             pygame.display.flip()
-
             clock.tick(60)
 
     def pause_game(self, clock: pygame.time.Clock) -> Optional[bool]:
 
         option = 0
+        starting_time = pygame.time.get_ticks()
 
         while True:
             for event in pygame.event.get():
@@ -204,26 +195,19 @@ class Engine:
 
                 keys = pygame.key.get_pressed()
                 if keys[pygame.K_UP]:
-                    if option > 0:
-                        option -= 1
-                    else:
-                        option = 1
-
+                    option = (option - 1) % 2
                 elif keys[pygame.K_DOWN]:
-                    if option < 1:
-                        option += 1
-                    else:
-                        option = 0
-
+                    option = (option + 1) % 2
                 elif keys[pygame.K_RETURN]:
                     if option == 0:
+                        end_time = pygame.time.get_ticks()
+                        self.last_spawn += end_time - starting_time
                         return 
-
                     elif option == 1:
                         return True
 
             self.screen.fill((0, 0, 0))
-            self.draw_screen.draw_pause_screen(self.screen_width, self.screen_height, option)
+            self.draw_screen.draw_pause_screen(self.screen_height, option)
 
             pygame.display.flip()
             clock.tick(60)
@@ -241,7 +225,7 @@ class Engine:
                     return True
 
             self.screen.fill((0, 0, 0))
-            self.draw_screen.draw_end_screen(self.screen_width, self.screen_height, self.score.score, self.score.max_streak)
+            self.draw_screen.draw_end_screen(self.screen_height, self.score.score, self.arrow_per_level[self.difficulty] * 100, self.score.max_streak)
 
             pygame.display.flip()
             clock.tick(60)
