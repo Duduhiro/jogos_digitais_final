@@ -3,7 +3,7 @@ from typing import Optional
 
 HIT_BOX = 100
 ARROW_SIZE = (50, 50)
-ARROW_IMAGE_PATH = 'arrow.png'
+ARROW_IMAGE_PATH = 'assets/arrow.png'
 
 
 class Arrow(pygame.sprite.Sprite):

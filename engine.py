@@ -9,10 +9,10 @@ from draw import Draw
 from score import Score
 
 ARROW_TYPES = {
-    'left':      {'rotation': 270, 'color': (255, 0, 0), 'key': pygame.K_LEFT},
-    'right':     {'rotation': 90, 'color': (64, 0, 128), 'key': pygame.K_RIGHT},
-    'up':        {'rotation': 180, 'color': (0, 0, 255), 'key': pygame.K_UP},
-    'down':      {'rotation': 0, 'color': (0, 0, 0), 'key': pygame.K_DOWN},
+    'left':      {'rotation': 270,  'color': (255, 0, 0),   'key': pygame.K_LEFT},
+    'right':     {'rotation': 90,   'color': (64, 0, 128),  'key': pygame.K_RIGHT},
+    'up':        {'rotation': 180,  'color': (0, 0, 255),   'key': pygame.K_UP},
+    'down':      {'rotation': 0,    'color': (0, 0, 0),     'key': pygame.K_DOWN},
 }
 
 # Class for controlling the game logic
@@ -20,6 +20,9 @@ class Engine:
 
     def __init__(self, screen: pygame.Surface, screen_width: int, screen_height: int) -> None:
         self.screen = screen
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+
         self.base_arrows = pygame.sprite.Group()
         self.moving_arrows = pygame.sprite.Group()
         self.draw_screen = Draw(self.screen)
@@ -46,9 +49,6 @@ class Engine:
             20
         ]
         self.count_arrows = 0
-
-        self.screen_width = screen_width
-        self.screen_height = screen_height
 
     def reset_game(self) -> None:
         self.score.reset()
@@ -140,6 +140,23 @@ class Engine:
 
         self.moving_arrows.add(arrow)
 
+    def intro(self, clock: pygame.time.Clock) -> None:
+
+        start = pygame.time.get_ticks()
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return 
+            
+            if pygame.time.get_ticks() - start > 4000:
+                return 
+
+            self.draw_screen.draw_intro()
+
+            pygame.display.flip()
+            clock.tick(60)
+
     def main_menu(self, clock: pygame.time.Clock) -> bool:
 
         diff = 0
@@ -170,6 +187,9 @@ class Engine:
 
     def main_game(self, clock: pygame.time.Clock) -> bool:
 
+        bg = pygame.image.load('assets/in_game.png')
+        bg = pygame.transform.scale(bg, (self.screen_width, self.screen_height))
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -182,7 +202,7 @@ class Engine:
                     if resume is not None:
                         return resume
             
-            self.screen.fill((0, 0, 0))
+            self.screen.blit(bg, (0, 0))
 
             if self.update():
                 return True

@@ -6,16 +6,18 @@ def main() -> None:
 
     pygame.init()
 
-    SCREEN_RES = (800, 600)
+    SCREEN_RES = (1280, 720)
 
     screen = pygame.display.set_mode(SCREEN_RES)
-    pygame.display.set_caption('Dance it!')
+    pygame.display.set_caption('Rock Rhythm')
     clock = pygame.time.Clock()
 
     running = True
 
     engine = Engine(screen, *SCREEN_RES)
     engine.create_base_arrow()
+
+    engine.intro(clock)
 
     while running:
         
